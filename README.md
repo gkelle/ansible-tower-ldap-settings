@@ -1,4 +1,4 @@
-tower_ldap
+ansible-tower-ldap-settings
 =========
 
 This role will enable you to update the Ansible Tower LDAP configuration using an ansible dictionary.
