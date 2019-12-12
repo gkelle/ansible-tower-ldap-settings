@@ -1,0 +1,62 @@
+---
+# tasks file for ansible-tower-ldap-settings
+- name: Check that required variables are defined
+  fail:
+    msg: "tower_host is not set"
+  when: tower_host is none
+
+- name: Check that required variables are defined
+  fail:
+    msg: "tower_token is not defined and tower_user/tower_password are not set"
+  when: ( tower_user is none or tower_password is none ) and tower_token is none
+
+- name: Merge default LDAP settings with tower_ldap_settings
+  set_fact:
+    merged_tower_ldap_settings: "{{ default_tower_ldap_settings | combine(tower_ldap_settings) }}"
+
+- name: Merge secure LDAP settings with merged LDAP settings
+  set_fact:
+    merged_tower_ldap_settings: "{{ merged_tower_ldap_settings | combine(secure_tower_ldap_settings) }}"
+  no_log: True
+
+- name: Set method to PATCH if LDAP bind password is not being supplied
+  set_fact:
+    tower_uri_method: PATCH
+  when:
+  - '"AUTH_LDAP_BIND_PASSWORD" not in merged_tower_ldap_settings'
+  - tower_uri_method_detect|bool
+
+- name: Display uri method
+  debug:
+    var: tower_uri_method
+
+- name: Set Bearer Token Header
+  set_fact:
+    tower_token_header:
+      Authorization: "Bearer {{ tower_token }}"
+  when: tower_token is not none
+  no_log: True
+
+- name: Set fact for Tower base url
+  set_fact:
+    tower_base_url: "{{ tower_url_protocol }}://{{ tower_host }}"
+
+- name: Print warning when tower_uri_validate_certs is disabled and using https
+  debug:
+    msg: "Warning: Certificate verification is not enabled and you are using https. You can get rid of this message by setting tower_uri_validate_certs to True."
+  when:
+  - "tower_url_protocol == 'https'"
+  - "tower_uri_validate_certs|bool == False"
+
+- name: Update LDAP settings
+  uri:
+    url: "{{ tower_base_url }}/api/v2/settings/ldap/"
+    user: "{{ ( tower_user is none ) | ternary(omit, tower_user) }}"
+    password: "{{ ( tower_password is none ) | ternary(omit, tower_password) }}"
+    headers: "{{ tower_token_header | default(omit) }}"
+    validate_certs: "{{ tower_uri_validate_certs | default(omit) }}"
+    force_basic_auth: "{{ tower_uri_force_basic_auth | default(omit) }}"
+    body_format: json
+    method: "{{ tower_uri_method }}"
+    body: "{{ merged_tower_ldap_settings }}"
+  no_log: True
