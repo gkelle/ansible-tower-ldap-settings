@@ -18,6 +18,7 @@ tower_token: A token of a user who will connect to Ansible Tower to perform the 
 
 Note: If you are defining a tower_token, there is no need to define tower_user or tower_password.  
 
+tower_url_protocol: Whether to use http or https when talking to the API. (Default: https)  
 
 tower_uri_force_basic_auth: Force sending of basic authentication header upon initial request. (Default: yes)  
 tower_uri_method_detect: Determine automatically whether the API method should be PUT or PATCH. Only use PATCH if no bind password is defined. (Default: True)  
